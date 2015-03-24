@@ -158,10 +158,13 @@ class SonarSenData
     }
 };
 
+OptSenData lsen(l_sen);
+SonarSenData fsen(SensorTrig, SensorEcho);
+
 // PID -------------------------------------------------------------------------------------------------
 
-#define Kp 0.3
-#define Kd 0.9
+#define Kp 0.1
+#define Kd 0//.9
 #define target 450
 #define interval 100
 
@@ -181,37 +184,38 @@ int do_PD(unsigned int sen_data)
 
 // Control ---------------------------------------------------------------------------------------------
 
-void execute_control(unsigned int sen_data)
+void execute_control()
 {
-  int adjustment = do_PD(sen_data);
-  int left_m_speed = spd + adjustment;
-  int right_m_speed = spd - adjustment;
+  #define saturation 150
+  
+  unsigned int distance = lsen.getReading();
+  int adjustment = do_PD(distance);
+  int left_m_speed = spd - adjustment;
+  int right_m_speed = spd + adjustment;
+  
+  //Serial.println(adjustment);
   
   // ensure speed saturation
-  left_m_speed = (left_m_speed > 255) ? 255 : left_m_speed;
-  left_m_speed = (left_m_speed < -255) ? -255 : left_m_speed;
+  left_m_speed = (left_m_speed > saturation) ? saturation : left_m_speed;
+  left_m_speed = (left_m_speed < 0) ? 0 : left_m_speed;
   
-  right_m_speed = (right_m_speed > 255) ? 255 : right_m_speed;
-  right_m_speed = (right_m_speed < -255) ? -255 : right_m_speed;
-  /*
+  right_m_speed = (right_m_speed > saturation) ? saturation : right_m_speed;
+  right_m_speed = (right_m_speed < 0) ? 0 : right_m_speed;
+  
+/*
   Serial.print(left_m_speed);
   Serial.print(" ");
   Serial.println(right_m_speed);
   */
-  left_m_speed *= 0.8;
-  right_m_speed *= 0.8;
   
   motorControl(left_m_speed, right_m_speed);
 }
 
 // setup -----------------------------------------------------------------------------------------------
 
-OptSenData lsen(l_sen);
-SonarSenData fsen(SensorTrig, SensorEcho);
-
 void setup()
 {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   
   pinMode(ServoControl, OUTPUT);
   sensor.attach(ServoControl);
@@ -237,7 +241,7 @@ unsigned long distance = 0;
 
 void loop()
 {
-  fsen.setReading();
+  /*fsen.setReading();
   distance = fsen.getReading();
   
   //Serial.println(distance);
@@ -247,11 +251,8 @@ void loop()
     t_right();
     delay(400);
     go();
-  }
+  }*/
   
-  //delay(500);
   lsen.setReading();
-  distance = lsen.getReading();
-  //Serial.println(distance);
-  INTERVAL_EXEC(1, 200, execute_control, distance);
+  INTERVAL_EXEC(1, 50, execute_control);
 }
