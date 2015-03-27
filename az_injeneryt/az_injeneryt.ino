@@ -164,9 +164,8 @@ SonarSenData fsen(SensorTrig, SensorEcho);
 // PID -------------------------------------------------------------------------------------------------
 
 #define Kp 0.1
-#define Kd 0//.9
-#define target 450
-#define interval 100
+#define Kd 0.3
+#define target 330
 
 int do_PD(unsigned int sen_data)
 {
@@ -184,10 +183,10 @@ int do_PD(unsigned int sen_data)
 
 // Control ---------------------------------------------------------------------------------------------
 
-void execute_control()
+void execute_control(unsigned int fsen, unsigned int lsen)
 {
   #define saturation 150
-  
+  unsigned int fsen = fsen.setReading();
   unsigned int distance = lsen.getReading();
   int adjustment = do_PD(distance);
   int left_m_speed = spd - adjustment;
@@ -197,16 +196,16 @@ void execute_control()
   
   // ensure speed saturation
   left_m_speed = (left_m_speed > saturation) ? saturation : left_m_speed;
-  left_m_speed = (left_m_speed < 0) ? 0 : left_m_speed;
+  left_m_speed = (left_m_speed < 60) ? 60 : left_m_speed;
   
   right_m_speed = (right_m_speed > saturation) ? saturation : right_m_speed;
-  right_m_speed = (right_m_speed < 0) ? 0 : right_m_speed;
+  right_m_speed = (right_m_speed < 60) ? 60 : right_m_speed;
   
 /*
   Serial.print(left_m_speed);
   Serial.print(" ");
   Serial.println(right_m_speed);
-  */
+*/
   
   motorControl(left_m_speed, right_m_speed);
 }
@@ -234,14 +233,12 @@ void setup()
   SensorControl(SensorLookForward);
 }
 
-unsigned long distance = 0;
-#define LeftTarget 1150
-#define LeftHole 1500
-#define ForwardWall 550
+#define ForwardWall 650
 
 void loop()
 {
-  /*fsen.setReading();
+  unsigned long distance = 0;
+  fsen.setReading();
   distance = fsen.getReading();
   
   //Serial.println(distance);
@@ -249,10 +246,10 @@ void loop()
   if(distance < ForwardWall)
   {
     t_right();
-    delay(400);
+    delay(500);
     go();
-  }*/
+  }
   
   lsen.setReading();
-  INTERVAL_EXEC(1, 50, execute_control);
+  INTERVAL_EXEC(1, 100, execute_control);
 }
