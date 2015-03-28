@@ -106,6 +106,10 @@ class OptSenData
     }
 };
 
+#undef MAX_SEN_SAMPLES
+
+#define MAX_SEN_SAMPLES 2
+
 class SonarSenData
 {
   private:
@@ -163,9 +167,9 @@ SonarSenData fsen(SensorTrig, SensorEcho);
 
 // PID -------------------------------------------------------------------------------------------------
 
-#define Kp 0.1
-#define Kd 0.3
-#define target 330
+#define Kp 0.03
+#define Kd -12.5
+#define target 270
 
 int do_PD(unsigned int sen_data)
 {
@@ -183,10 +187,11 @@ int do_PD(unsigned int sen_data)
 
 // Control ---------------------------------------------------------------------------------------------
 
-void execute_control(unsigned int fsen, unsigned int lsen)
+void execute_control()
 {
-  #define saturation 150
-  unsigned int fsen = fsen.setReading();
+  #define high_saturation 100
+  #define low_saturation 0
+  //unsigned int fsen_val = fsen.getReading();
   unsigned int distance = lsen.getReading();
   int adjustment = do_PD(distance);
   int left_m_speed = spd - adjustment;
@@ -195,11 +200,11 @@ void execute_control(unsigned int fsen, unsigned int lsen)
   //Serial.println(adjustment);
   
   // ensure speed saturation
-  left_m_speed = (left_m_speed > saturation) ? saturation : left_m_speed;
-  left_m_speed = (left_m_speed < 60) ? 60 : left_m_speed;
+  left_m_speed = (left_m_speed > high_saturation) ? high_saturation : left_m_speed;
+  left_m_speed = (left_m_speed < low_saturation) ? low_saturation : left_m_speed;
   
-  right_m_speed = (right_m_speed > saturation) ? saturation : right_m_speed;
-  right_m_speed = (right_m_speed < 60) ? 60 : right_m_speed;
+  right_m_speed = (right_m_speed > high_saturation) ? high_saturation : right_m_speed;
+  right_m_speed = (right_m_speed < low_saturation) ? low_saturation : right_m_speed;
   
 /*
   Serial.print(left_m_speed);
@@ -230,6 +235,8 @@ void setup()
   pinMode(rmf, OUTPUT);
   pinMode(rmb, OUTPUT);
   
+  digitalWrite(SensorEcho, LOW);
+  
   SensorControl(SensorLookForward);
 }
 
@@ -251,5 +258,5 @@ void loop()
   }
   
   lsen.setReading();
-  INTERVAL_EXEC(1, 100, execute_control);
+  INTERVAL_EXEC(1, 200, execute_control);
 }
